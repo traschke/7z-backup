@@ -3,7 +3,7 @@ Simple PowerShell script that handles diffenrential backups via 7zip
 
 ## Prerequisities
 * PowerShell
-* PowerShell module "BurnedToast"
+* PowerShell module "BurntToast"
  * In PowerShell do `PS> Install-Module -Name BurntToast -RequiredVersion 0.4` to install it
 * 7zip (Note that `7z.exe` must be in your `PATH`or the script won't find it)
 
