@@ -3,12 +3,18 @@ function FullBackup ($pathToBackup, $backupDestinationPath) {
     $backupFilename = [string]::Format("{0}-Base-{1}.7z", $parsedBackupPath, $(GetTimeStamp))
     $backupFilePath = [System.IO.Path]::Combine($backupDestinationPath, $backupFilename)
 
-    $tmp7zCall = "a `"{0}`" `"{1}`" -m0=Copy -x!`"System Volume Information`" -x!`"`$RECYCLE.BIN`" -x!`"Config.Msi`" -x!`"" + $configFile + "`" -w`"{2}`""
-    $7zCall = [string]::Format($tmp7zCall, $backupFilePath, $pathToBackup, $backupDestinationPath)
+    if (IsBackupIgonreFile) {
+        $tmp7zCall = "a `"{0}`" `"{1}`" -m0=Copy -xr@{2} -w`"{3}`""
+        $7zCall = [string]::Format($tmp7zCall, $backupFilePath, $pathToBackup, $backupIgnoreFile, $backupDestinationPath)
+    } else {
+        $tmp7zCall = "a `"{0}`" `"{1}`" -m0=Copy -w`"{2}`""
+        $7zCall = [string]::Format($tmp7zCall, $backupFilePath, $pathToBackup, $backupDestinationPath)
+    }
 
     echo $([string]::Format("Creating full backup of `"{0}`" to `"{1}`"...", $pathToBackup, $backupFilePath))
     ShowNotification "Full Backup of `"$pathToBackup`" started!"
     #echo $7zCall
+    #pause
 
     Invoke-Expression "7z $7zCall"
     CreateConfig $backupFilePath
@@ -24,13 +30,19 @@ function DifferentialBackup ($pathToBackup, $backupDestinationPath) {
         $parsedBackupPath = $pathToBackup.Replace("\", "_").Replace(":", "")
         $backupFilename = [string]::Format("{0}-Diff-{1}.7z", $parsedBackupPath, $(GetTimeStamp))
         $backupFilePath = [System.IO.Path]::Combine($backupDestinationPath, $backupFilename)
-
-        $tmp7zCall = "u `"{0}`" `"{1}`" -m0=Copy -u- -up0q3r2x2y2z0w2!`"{2}`" -x!`"System Volume Information`" -x!`"`$RECYCLE.BIN`" -x!`"Config.Msi`" -x!`"{3}`" -w`"{4}`""
-        $7zCall = [string]::Format($tmp7zCall, $baseFile, $pathToBackup, $backupFilePath, $(GetConfigExclutionString), $backupDestinationPath)
+        
+        if (IsBackupIgonreFile) {
+            $tmp7zCall = "u `"{0}`" `"{1}`" -m0=Copy -u- -up0q3r2x2y2z0w2!`"{2}`" -xr@{3} -w`"{4}`""
+            $7zCall = [string]::Format($tmp7zCall, $baseFile, $pathToBackup, $backupFilePath, $backupIgnoreFile, $backupDestinationPath)
+        } else {
+            $tmp7zCall = "u `"{0}`" `"{1}`" -m0=Copy -u- -up0q3r2x2y2z0w2!`"{2}`" -w`"{3}`""
+            $7zCall = [string]::Format($tmp7zCall, $baseFile, $pathToBackup, $backupFilePath, $backupDestinationPath)
+        }
 
         echo $([string]::Format("Creating differential backup of `"{0}`" to `"{1}`" based on `"{2}`"...", $pathToBackup, $backupFilePath, $baseFile))
         ShowNotification "Diffenrential Backup of `"$pathToBackup`" started!"
         #echo $7zCall
+        #pause
 
         Invoke-Expression "7z $7zCall"
 
@@ -90,13 +102,21 @@ function DecideBackup () {
     }
 }
 
-if ((Get-Command "7z" -ErrorAction SilentlyContinue) -eq $null) 
-{ 
-   Write-Host "Unable to find 7z in your PATH. Please fix that. Exiting..."
+function IsBackupIgonreFile() {
+    if ([System.IO.File]::Exists($backupIgnoreFile)) {
+        return $true
+    }
+    return $false
+}
+
+### MAIN ###
+if ((Get-Command "7z" -ErrorAction SilentlyContinue) -eq $null) { 
+   echo "Unable to find 7z in your PATH. Please fix that. Exiting..."
    exit 1
 }
 
 $pathToBackup = $args[0]
 $backupDestinationPath = $args[1]
 $configFile = [System.IO.Path]::Combine($pathToBackup + "\", "backupconfig.ini")
+$backupIgnoreFile = [System.IO.Path]::Combine($pathToBackup + "\", ".backupignore")
 DecideBackup
