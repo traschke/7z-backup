@@ -24,3 +24,14 @@ Note that you don't have to give a filename in destination path, the script will
 If you run the script the first time on a path you would like to backup, it will create a full backup of this path. It will then create a config file in this path with the location of the full backup.
 If you run the script on that path again, it will look for the full backup given in the config file and will perform a diffenrential backup against this.
 
+### Exclude files from backup
+The script will look for a `.backupignore` file in the backup path. This has to be a 7z exclude list and will be applied recursively to the backup path.
+
+Example:
+```
+$RECYCLE.BIN
+Config.Msi
+System Volume Information
+desktop.ini
+.sync
+```
